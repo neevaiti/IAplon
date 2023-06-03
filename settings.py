@@ -1,12 +1,24 @@
 import os
 import logging
-
+from logging.handlers import RotatingFileHandler
 from logging.config import dictConfig
+from datetime import datetime
 from dotenv import load_dotenv
 
 load_dotenv()
 
 TOKEN = os.getenv('TOKEN')
+
+# Obtenez le chemin absolu du fichier settings.py
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+LOGS_DIR = os.path.join(BASE_DIR, 'Logs')
+
+# Créez le répertoire Logs s'il n'existe pas
+if not os.path.exists(LOGS_DIR):
+    os.makedirs(LOGS_DIR)
+
+# Format de date pour le nom du fichier de log
+log_date_format = "%Y-%m-%d"
 
 # Config logging
 LOGGING_CONFIG = {
@@ -14,41 +26,41 @@ LOGGING_CONFIG = {
     "disable_existing_loggers": False,
     "formatters": {
         "verbose": {
-            "format": "%(levelname)s %(asctime)s %(module)s %(process)d %(thread)d %(message)s"  
-        },
-        "standard": {
-            "format": "%(asctime)s %(levelname)s %(message)s"
+            "format": "%(levelname)s %(asctime)s %(module)s %(process)d %(thread)d %(message)s"
         }
     },
     "handlers": {
         "console": {
             "class": "logging.StreamHandler",
-            "formatter": "standard",
+            "formatter": "verbose",
             "level": "DEBUG"
         },
-        "console2": {
-            "class": "logging.StreamHandler",
-            "formatter": "standard",
-            "level": "WARNING"  
-        },
         "file": {
-            "class": "logging.FileHandler",
-            "level": "INFO",
-            "filename": "Logs/infos.log",
-            "mode": "w",
-            "formatter": "standard"
+            "class": "logging.handlers.RotatingFileHandler",
+            "level": "DEBUG",
+            "formatter": "verbose",
+            "filename": os.path.join(LOGS_DIR, "infos.log"),
+            "mode": "a",
+            "maxBytes": 10485760,  # 10 MB
+            "backupCount": 7
         }
     },
     "loggers": {
         "bot": {
-            "handlers": ["console"],
-            "level": "INFO",
-            "propagate": False
+            "handlers": ["console", "file"],
+            "level": "DEBUG"
         },
         "discord": {
-            "handlers": ["console2", "file"],
-            "level": "INFO",
-            "propagate": False
+            "handlers": ["console", "file"],
+            "level": "DEBUG"
         }
     }
 }
+
+# Ajoutez la date au nom du fichier de log
+log_filename = f"infos_{datetime.now().strftime(log_date_format)}.log"
+LOGGING_CONFIG['handlers']['file']['filename'] = os.path.join(LOGS_DIR, log_filename)
+
+dictConfig(LOGGING_CONFIG)
+
+logger = logging.getLogger("bot")
